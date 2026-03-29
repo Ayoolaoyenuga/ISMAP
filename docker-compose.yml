@@ -1,0 +1,14 @@
+services:
+  ismap:
+    build: .
+    container_name: ismap-app
+    ports:
+      - "5000:5000"
+    volumes:
+      - ismap_data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:////app/data/ismap.db
+    restart: always
+
+volumes:
+  ismap_data:
