@@ -1,16 +1,11 @@
 # ISMAP Deployment Guide
 
-This project is best deployed as:
+This project can be deployed most simply on Render as:
 
-1. Frontend on Vercel
-2. Backend on Render
-3. Database on Render Postgres
+1. One Docker-based web service for the Flask backend and built frontend
+2. One Render Postgres database
 
-## Why
-
-- The frontend is a React/Vite app and fits Vercel well.
-- The backend uses Flask, background scheduling, and a relational database.
-- SQLite is fine locally, but for deployment you should use Postgres.
+In this setup, Flask serves the built React frontend from `frontend/dist`, so you do not need Vercel.
 
 ## Before You Push
 
@@ -21,83 +16,80 @@ Make sure these are not committed:
 - Slack webhooks
 - Telegram bot tokens
 
-If you exposed a webhook or bot token during testing, rotate it before deployment.
+If you exposed any secrets during testing, rotate them before deployment.
 
-## 1. Push To GitHub
+## Files Already Prepared
 
-From the project root:
+This repo already includes:
 
-```bash
-git init
-git add .
-git commit -m "Prepare ISMAP for deployment"
-git branch -M main
-git remote add origin <your-github-repo-url>
-git push -u origin main
-```
+- [Dockerfile](/c:/Users/Ayool/Documents/final-year/ismap-main/Dockerfile)
+- [start.sh](/c:/Users/Ayool/Documents/final-year/ismap-main/start.sh)
+- [render.yaml](/c:/Users/Ayool/Documents/final-year/ismap-main/render.yaml)
+- [.dockerignore](/c:/Users/Ayool/Documents/final-year/ismap-main/.dockerignore)
 
-## 2. Deploy Backend On Render
+## Render Deployment
 
-This repo includes [render.yaml](/c:/Users/Ayool/Documents/final-year/ismap-main/render.yaml).
+### Option A: Blueprint
 
-In Render:
+1. In Render, click `New +`
+2. Choose `Blueprint`
+3. Select your GitHub repo
+4. Let Render read `render.yaml`
 
-1. Create a new Blueprint or Web Service from your GitHub repo
-2. Use the `ismap-main` directory as the backend root
-3. Let Render create the Postgres database from `render.yaml`
+This should create:
 
-Set these environment variables in Render:
+- web service: `ismap`
+- database: `ismap-db`
 
-- `CORS_ORIGINS=https://your-frontend-domain.vercel.app`
-- `RECOVERY_ADMINS_JSON=[{"email":"admin@example.com","username":"admin","password":"strong-password"}]`
+### Option B: Manual
 
-Render already gets:
+If Blueprint is confusing, create these manually:
+
+1. `New +` -> `Web Service`
+2. Select your repo
+3. Choose Docker runtime
+4. Let Render build from the repo `Dockerfile`
+5. Create a separate `PostgreSQL` database in Render
+
+## Required Environment Variables
+
+Render should provide or allow you to set:
 
 - `DATABASE_URL`
 - `JWT_SECRET_KEY`
+- `CORS_ORIGINS`
 
-from the blueprint config
+Optional:
 
-## 3. Deploy Frontend On Vercel
+- `RECOVERY_ADMINS_JSON`
 
-In Vercel:
-
-1. Import the same GitHub repo
-2. Set the project root to `ismap-main/frontend`
-3. Add this environment variable:
+Example:
 
 ```text
-VITE_API_URL=https://your-render-backend.onrender.com
+CORS_ORIGINS=https://your-render-app.onrender.com
 ```
-
-Then deploy.
-
-## 4. Update Backend CORS
-
-Your backend must allow the frontend origin.
-
-In Render, set:
 
 ```text
-CORS_ORIGINS=https://your-vercel-project.vercel.app
+RECOVERY_ADMINS_JSON=[{"email":"admin@example.com","username":"admin","password":"strong-password"}]
 ```
 
-If you use a custom frontend domain later, add it too:
+## How It Works
 
-```text
-CORS_ORIGINS=https://your-vercel-project.vercel.app,https://app.yourdomain.com
-```
+- Docker builds the frontend with Vite
+- the built frontend is copied into `frontend/dist`
+- Flask serves that built frontend
+- Gunicorn runs the backend with one worker
+- Postgres stores production data
 
-## 5. First Production Login
+## First Production Login
 
-You have two options:
+You have two choices:
 
-1. Leave `RECOVERY_ADMINS_JSON` empty and create the first account manually
-2. Set `RECOVERY_ADMINS_JSON` so Render creates your admin account on startup
+1. Leave `RECOVERY_ADMINS_JSON` empty and register the first user manually
+2. Set `RECOVERY_ADMINS_JSON` so Render creates an admin account on startup
 
 ## Notes
 
 - Local development can still use SQLite
 - Production should use Postgres
-- Render runs the Flask app with one worker in order to avoid duplicate schedulers
-- Vercel hosts only the frontend in this setup
+- The `/` route will work in Render once the Docker build includes the frontend dist output

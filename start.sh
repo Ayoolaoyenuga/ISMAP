@@ -8,5 +8,4 @@ if [ ! -f /app/data/ismap.db ] && [ -f /app/ismap.db ]; then
 fi
 
 # Run the Flask application with a single worker to prevent duplicate schedulers
-exec gunicorn --bind 0.0.0.0:5000 --timeout 120 --workers 1 app:app
-
+exec gunicorn --bind 0.0.0.0:${PORT:-5000} --timeout 120 --workers 1 app:app
