@@ -210,18 +210,16 @@ def ensure_admin() -> None:
     admin_accounts = _load_recovery_admins()
 
     with get_session() as session:
-        # If there are no users yet, allow the normal registration flow to
-        # create the first user as the administrator. Do NOT create a
-        # hardcoded admin account when the DB is empty because that would
-        # prevent the first human signup from becoming admin.
         user_count = session.query(User).count()
-        if user_count == 0:
-            logger.info("No existing users found — skipping automatic admin creation to allow first signup to become admin.")
+        if not admin_accounts:
+            if user_count == 0:
+                logger.info("No existing users found and no recovery admins configured; first signup will become admin.")
+            else:
+                logger.info("No recovery admin accounts configured via RECOVERY_ADMINS_JSON.")
             return
 
-        if not admin_accounts:
-            logger.info("No recovery admin accounts configured via RECOVERY_ADMINS_JSON.")
-            return
+        if user_count == 0:
+            logger.info("No existing users found; creating configured recovery admin accounts.")
 
         for admin in admin_accounts:
             user = session.query(User).filter_by(email=admin["email"]).first()
