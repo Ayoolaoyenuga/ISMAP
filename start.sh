@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Ensure the data directory exists
 mkdir -p /app/data
 

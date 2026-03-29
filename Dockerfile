@@ -34,4 +34,4 @@ ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
 RUN chmod +x start.sh
-CMD ["./start.sh"]
+CMD ["sh", "./start.sh"]
